@@ -303,6 +303,8 @@ void main() {
           ownerId: Snowflake(1),
           roles: [],
           memberCount: 1,
+          onlineCount: null,
+          vanityUrlCode: null,
         );
         gatewayEvents.add(GuildCreateEvent(guild));
         await Future<void>.delayed(Duration.zero);
@@ -337,6 +339,8 @@ void main() {
         ownerId: Snowflake(1),
         roles: [],
         memberCount: 1,
+        onlineCount: null,
+        vanityUrlCode: null,
       );
       gatewayEvents.add(GuildCreateEvent(guild));
       await Future<void>.delayed(Duration.zero);
