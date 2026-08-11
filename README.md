@@ -59,12 +59,16 @@ and exposes:
   [`GatewayBotInfo`](https://github.com/oppahansi/fluxer_core)'s doc
   comment for why) and connects one `GatewayConnection` per shard.
 
+`CommandRouter` (also in this package) adds message-content command
+routing on top of `Bot`: fluent `.command(name, handler)` registration
+and Chain-of-Responsibility middleware (e.g. the built-in `cooldown()`)
+that runs before a handler and can short-circuit it.
+
 ## What's here
 
 Login, sharding, reconnect/resume, typed event streams for 22 dispatch
-events, the full REST resource-manager surface, and cache-aside resource
-lookups. A message-content command router hasn't landed yet — see the
-roadmap in this ecosystem's planning docs.
+events, the full REST resource-manager surface, cache-aside resource
+lookups, and message-content command routing.
 
 ## Part of the fluxer.dart ecosystem
 

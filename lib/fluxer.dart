@@ -15,3 +15,4 @@ export 'package:fluxer_rest/fluxer_rest.dart';
 export 'package:fluxer_utils/fluxer_utils.dart';
 
 export 'src/bot.dart';
+export 'src/command_router.dart';
