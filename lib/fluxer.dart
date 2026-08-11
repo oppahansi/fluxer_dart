@@ -27,5 +27,7 @@ export 'package:fluxer_rest/fluxer_rest.dart'
         GuildRestManager,
         MessageBuilder,
         MessageRestManager;
+export 'package:fluxer_utils/fluxer_utils.dart'
+    show LogLevel, Logger, NoopLogger, PrintLogger;
 
 export 'src/bot.dart';
