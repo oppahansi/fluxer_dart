@@ -53,7 +53,7 @@ void main() {
       bot = Bot(
         token: 'test-token',
         restClient: RestClient(token: 'test-token', transport: httpTransport),
-        gatewayConnectionFactory: (url, token) {
+        gatewayConnectionFactory: (shardId, shardCount, url, token) {
           requestedGatewayUrls.add(url);
           requestedTokens.add(token);
           return gatewayConnection;
@@ -71,7 +71,7 @@ void main() {
       expect(bot.connectionState, isA<Disconnected>());
     });
 
-    test('exposes the M2 REST managers', () {
+    test('exposes the guild-scoped REST managers', () {
       expect(bot.members, isA<GuildMemberRestManager>());
       expect(bot.bans, isA<GuildBanRestManager>());
       expect(bot.emojis, isA<GuildEmojiRestManager>());
@@ -196,5 +196,59 @@ void main() {
 
       verify(() => gatewayConnection.dispose()).called(1);
     });
+  });
+
+  group('Bot with multiple shards', () {
+    test(
+      'login() builds one GatewayConnection per shard, each with its own shardId',
+      () async {
+        final httpTransport = MockHttpTransport();
+        when(() => httpTransport.send(any())).thenAnswer(
+          (_) async => const HttpTransportResponse(
+            statusCode: 200,
+            headers: {},
+            body:
+                '{"url": "wss://gateway.fluxer.app", "shards": 3, '
+                '"session_start_limit": {"total": 1000, "remaining": 999, "reset_after": 86400000, "max_concurrency": 3}}',
+          ),
+        );
+
+        final requestedShardIds = <int>[];
+        final requestedShardCounts = <int>[];
+        final mocks = <MockGatewayConnection>[];
+
+        final bot = Bot(
+          token: 'test-token',
+          restClient: RestClient(token: 'test-token', transport: httpTransport),
+          gatewayConnectionFactory: (shardId, shardCount, url, token) {
+            requestedShardIds.add(shardId);
+            requestedShardCounts.add(shardCount);
+            final mock = MockGatewayConnection();
+            when(
+              () => mock.events,
+            ).thenAnswer((_) => const Stream<GatewayEvent>.empty());
+            when(
+              () => mock.stateChanges,
+            ).thenAnswer((_) => const Stream<GatewayConnectionState>.empty());
+            when(() => mock.connect()).thenAnswer((_) async {});
+            when(() => mock.dispose()).thenAnswer((_) async {});
+            when(() => mock.state).thenReturn(const Disconnected());
+            mocks.add(mock);
+            return mock;
+          },
+        );
+
+        await bot.login();
+
+        expect(requestedShardIds, [0, 1, 2]);
+        expect(requestedShardCounts, [3, 3, 3]);
+        expect(bot.shards, hasLength(3));
+        for (final mock in mocks) {
+          verify(() => mock.connect()).called(1);
+        }
+
+        await bot.dispose();
+      },
+    );
   });
 }
