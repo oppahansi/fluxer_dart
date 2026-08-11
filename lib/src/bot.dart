@@ -81,6 +81,13 @@ final class Bot {
   StreamSubscription<GatewayEvent>? _eventsSubscription;
   StreamSubscription<ShardStateChange>? _stateSubscription;
   GatewayShardManager? _shardManager;
+  Snowflake? _selfId;
+
+  /// This bot's own user id, populated once READY has come through —
+  /// `null` before then. Lets command handlers tell their own actions
+  /// (e.g. a reaction added via [MessageRestManager.addReaction] to set
+  /// up pagination controls) apart from a real user's.
+  Snowflake? get selfId => _selfId;
 
   /// Every gateway dispatch event, from every shard. Empty until [login]
   /// has been called and a READY/RESUMED has come through — see the
@@ -176,6 +183,7 @@ final class Bot {
     switch (event) {
       case ReadyEvent(:final user):
         _userCache.set(user.id, user);
+        _selfId = user.id;
       case GuildCreateEvent(:final guild):
         _guildCache.set(guild.id, guild);
       case GuildUpdateEvent(:final guild):

@@ -190,6 +190,30 @@ void main() {
       },
     );
 
+    test('selfId is populated once READY comes through', () async {
+      expect(bot.selfId, isNull);
+      await bot.login();
+
+      gatewayEvents.add(
+        ReadyEvent(
+          sessionId: 's1',
+          user: const User(
+            id: Snowflake(42),
+            username: 'bot',
+            discriminator: '0',
+            globalName: null,
+            avatar: null,
+            avatarColor: null,
+            bot: true,
+            system: false,
+          ),
+        ),
+      );
+      await Future<void>.delayed(Duration.zero);
+
+      expect(bot.selfId, const Snowflake(42));
+    });
+
     test('close() disposes the underlying gateway connection', () async {
       await bot.login();
       await bot.close();

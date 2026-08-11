@@ -109,6 +109,20 @@ void main() {
       await router.dispose();
     });
 
+    test(
+      'commandNames lists registered commands in registration order',
+      () async {
+        final router = CommandRouter(bot: bot, prefix: '!');
+        router
+          ..command('ping', (ctx) async {})
+          ..command('echo', (ctx) async {});
+
+        expect(router.commandNames, ['ping', 'echo']);
+
+        await router.dispose();
+      },
+    );
+
     test('args is empty when no arguments were given', () async {
       final router = CommandRouter(bot: bot, prefix: '!');
       CommandContext? received;

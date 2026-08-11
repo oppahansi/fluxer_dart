@@ -67,6 +67,11 @@ final class CommandRouter {
     return this;
   }
 
+  /// The name of every registered command, in registration order — used
+  /// by a `!help` command to list what's available without hand-keeping
+  /// a separate list in sync.
+  List<String> get commandNames => _commands.keys.toList(growable: false);
+
   Future<void> _handle(MessageCreateEvent event) async {
     final message = event.message;
     if (message.author.bot) return;
