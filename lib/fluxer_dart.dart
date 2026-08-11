@@ -16,3 +16,4 @@ export 'package:fluxer_dart_utils/fluxer_dart_utils.dart';
 
 export 'src/bot.dart';
 export 'src/command_router.dart';
+export 'src/require_guild_permission.dart';
