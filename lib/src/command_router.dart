@@ -1,8 +1,8 @@
 import 'dart:async';
 
-import 'package:fluxer_core/fluxer_core.dart';
-import 'package:fluxer_gateway/fluxer_gateway.dart';
-import 'package:fluxer_rest/fluxer_rest.dart';
+import 'package:fluxer_dart_core/fluxer_dart_core.dart';
+import 'package:fluxer_dart_gateway/fluxer_dart_gateway.dart';
+import 'package:fluxer_dart_rest/fluxer_dart_rest.dart';
 
 import 'bot.dart';
 

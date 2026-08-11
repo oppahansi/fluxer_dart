@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:fluxer/fluxer.dart';
+import 'package:fluxer_dart/fluxer_dart.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:test/test.dart';
 

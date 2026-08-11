@@ -1,11 +1,11 @@
-name: fluxer
+name: fluxer_dart
 description: >-
-  A bot framework for Fluxer. The Bot facade ties together fluxer_gateway,
-  fluxer_rest, fluxer_core, and fluxer_utils behind one clean, ergonomic
+  A bot framework for Fluxer. The Bot facade ties together fluxer_dart_gateway,
+  fluxer_dart_rest, fluxer_dart_core, and fluxer_dart_utils behind one clean, ergonomic
   entry point for bot authors.
 version: 0.1.0
-homepage: https://github.com/oppahansi/fluxer.dart
-repository: https://github.com/oppahansi/fluxer.dart
+homepage: https://github.com/oppahansi/fluxer_dart
+repository: https://github.com/oppahansi/fluxer_dart
 # Uses path deps on sibling packages during local development — remove this
 # line once those are published/hosted and this is ready for a real release.
 publish_to: 'none'
@@ -14,14 +14,14 @@ environment:
   sdk: ^3.12.2
 
 dependencies:
-  fluxer_core:
-    path: ../fluxer_core
-  fluxer_gateway:
-    path: ../fluxer_gateway
-  fluxer_rest:
-    path: ../fluxer_rest
-  fluxer_utils:
-    path: ../fluxer_utils
+  fluxer_dart_core:
+    path: ../fluxer_dart_core
+  fluxer_dart_gateway:
+    path: ../fluxer_dart_gateway
+  fluxer_dart_rest:
+    path: ../fluxer_dart_rest
+  fluxer_dart_utils:
+    path: ../fluxer_dart_utils
 
 dev_dependencies:
   lints: ^6.1.0

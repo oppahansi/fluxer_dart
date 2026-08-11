@@ -1,12 +1,12 @@
 import 'dart:async';
 
-import 'package:fluxer_core/fluxer_core.dart';
-import 'package:fluxer_gateway/fluxer_gateway.dart';
-import 'package:fluxer_rest/fluxer_rest.dart';
-import 'package:fluxer_utils/fluxer_utils.dart';
+import 'package:fluxer_dart_core/fluxer_dart_core.dart';
+import 'package:fluxer_dart_gateway/fluxer_dart_gateway.dart';
+import 'package:fluxer_dart_rest/fluxer_dart_rest.dart';
+import 'package:fluxer_dart_utils/fluxer_dart_utils.dart';
 
 /// The single entry point bot authors interact with — a **Facade** over
-/// `fluxer_gateway`'s [GatewayShardManager] and `fluxer_rest`'s
+/// `fluxer_dart_gateway`'s [GatewayShardManager] and `fluxer_dart_rest`'s
 /// [RestClient], so building a bot never requires touching either
 /// sub-package's types directly.
 ///
