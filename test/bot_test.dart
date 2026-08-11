@@ -76,6 +76,9 @@ void main() {
       expect(bot.members, isA<GuildMemberRestManager>());
       expect(bot.bans, isA<GuildBanRestManager>());
       expect(bot.emojis, isA<GuildEmojiRestManager>());
+      expect(bot.stickers, isA<GuildStickerRestManager>());
+      expect(bot.roles, isA<GuildRoleRestManager>());
+      expect(bot.invites, isA<InviteRestManager>());
       expect(bot.webhooks, isA<WebhookRestManager>());
     });
 

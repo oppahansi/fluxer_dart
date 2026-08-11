@@ -50,6 +50,9 @@ final class Bot {
   late final GuildMemberRestManager members = GuildMemberRestManager(rest);
   late final GuildBanRestManager bans = GuildBanRestManager(rest);
   late final GuildEmojiRestManager emojis = GuildEmojiRestManager(rest);
+  late final GuildStickerRestManager stickers = GuildStickerRestManager(rest);
+  late final GuildRoleRestManager roles = GuildRoleRestManager(rest);
+  late final InviteRestManager invites = InviteRestManager(rest);
   late final WebhookRestManager webhooks = WebhookRestManager(rest);
   late final GatewayRestManager _gatewayRest = GatewayRestManager(rest);
 

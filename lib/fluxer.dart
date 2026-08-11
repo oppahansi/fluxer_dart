@@ -28,6 +28,9 @@ export 'package:fluxer_rest/fluxer_rest.dart'
         GuildEmojiRestManager,
         GuildMemberRestManager,
         GuildRestManager,
+        GuildRoleRestManager,
+        GuildStickerRestManager,
+        InviteRestManager,
         MessageBuilder,
         MessageRestManager,
         WebhookRestManager;
