@@ -12,7 +12,7 @@ Future<void> main() async {
     final message = event.message;
     if (message.author.bot) return;
     if (message.content == '!ping') {
-      await bot.messages.send(message.channelId, MessageBuilder(content: 'pong'));
+      await bot.reply(message, MessageBuilder(content: 'pong'));
     }
   });
 
@@ -34,28 +34,37 @@ READMEs for exactly what was verified where.
 ## Design
 
 `Bot` is a **facade** over the ecosystem's other packages — it owns a
-`GatewayConnection` ([`fluxer_gateway`](https://github.com/oppahansi/fluxer_gateway))
+`GatewayShardManager` ([`fluxer_gateway`](https://github.com/oppahansi/fluxer_gateway))
 and a `RestClient` ([`fluxer_rest`](https://github.com/oppahansi/fluxer_rest)),
 and exposes:
 
-- Typed per-event streams (`onReady`, `onMessageCreate`, `onGuildCreate`)
+- Typed per-event streams (`onReady`, `onMessageCreate`, `onGuildCreate`, ...)
   built on top of `fluxer_gateway`'s single `Stream<GatewayEvent>`, so bot
   authors don't need to `switch` on the sealed event hierarchy themselves
   unless they want to.
-- Resource managers (`guilds`, `channels`, `messages`) straight from
+- Resource managers (`guilds`, `channels`, `messages`, `members`, `bans`,
+  `emojis`, `stickers`, `roles`, `invites`, `webhooks`) straight from
   `fluxer_rest`.
-- `login()` — fetches the current gateway URL via `GET /gateway/bot`
-  (never hardcoded — see
+- Cache-aside convenience methods — `guild(id)`, `channel(id)`,
+  `member(guildId, userId)` return a cached value when one exists,
+  otherwise fetch via REST and cache the result; `user(id)` is cache-only
+  (there's no bare `GET /users/{id}` endpoint to fall back to). The caches
+  themselves are pluggable `CacheProvider`s
+  ([`fluxer_utils`](https://github.com/oppahansi/fluxer_utils)), populated
+  automatically as dispatch events arrive — a default in-memory
+  implementation is used unless a host app supplies its own.
+- `reply(message, builder)` — sends to the channel a message was posted in.
+- `login()` — fetches the gateway URL and recommended shard count via
+  `GET /gateway/bot` (never hardcoded — see
   [`GatewayBotInfo`](https://github.com/oppahansi/fluxer_core)'s doc
-  comment for why) and connects.
+  comment for why) and connects one `GatewayConnection` per shard.
 
-## What's here (v0.1 — M1 slice)
+## What's here
 
-Enough to build the "hello gateway" example bot: login, `onReady`,
-`onMessageCreate`, `onGuildCreate`, and the `guilds`/`channels`/`messages`
-REST managers. Caching, hydrated convenience objects (e.g. `message.reply()`),
-and a command router land in later milestones — see the roadmap in this
-ecosystem's planning docs.
+Login, sharding, reconnect/resume, typed event streams for 22 dispatch
+events, the full REST resource-manager surface, and cache-aside resource
+lookups. A message-content command router hasn't landed yet — see the
+roadmap in this ecosystem's planning docs.
 
 ## Part of the fluxer.dart ecosystem
 

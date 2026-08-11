@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:fluxer_core/fluxer_core.dart';
 import 'package:fluxer_gateway/fluxer_gateway.dart';
 import 'package:fluxer_rest/fluxer_rest.dart';
 import 'package:fluxer_utils/fluxer_utils.dart';
@@ -28,14 +29,27 @@ final class Bot {
     RestClient? restClient,
     this._gatewayConnectionFactory,
     this.identifyPacing = const Duration(seconds: 5),
+    CacheProvider<Snowflake, Guild>? guildCache,
+    CacheProvider<Snowflake, Channel>? channelCache,
+    CacheProvider<Snowflake, User>? userCache,
+    CacheProvider<(Snowflake, Snowflake), GuildMember>? memberCache,
   }) : logger = logger ?? const NoopLogger(),
        rest =
            restClient ??
-           RestClient(token: token, baseUrl: restBaseUrl, logger: logger);
+           RestClient(token: token, baseUrl: restBaseUrl, logger: logger),
+       _guildCache = guildCache ?? InMemoryCacheProvider(),
+       _channelCache = channelCache ?? InMemoryCacheProvider(),
+       _userCache = userCache ?? InMemoryCacheProvider(),
+       _memberCache = memberCache ?? InMemoryCacheProvider();
 
   final String token;
   final Logger logger;
   final RestClient rest;
+
+  final CacheProvider<Snowflake, Guild> _guildCache;
+  final CacheProvider<Snowflake, Channel> _channelCache;
+  final CacheProvider<Snowflake, User> _userCache;
+  final CacheProvider<(Snowflake, Snowflake), GuildMember> _memberCache;
 
   /// Minimum gap between IDENTIFYs of shards sharing the same
   /// `session_start_limit.max_concurrency` bucket — see
@@ -144,10 +158,101 @@ final class Bot {
                 factory(shardId, shardCount, gatewayUrl, token),
     );
     _shardManager = manager;
-    _eventsSubscription = manager.events.listen(_eventsController.add);
+    _eventsSubscription = manager.events.listen(_handleEvent);
     _stateSubscription = manager.stateChanges.listen(_stateController.add);
     await manager.connect();
   }
+
+  /// Updates the guild/channel/user/member caches from whatever a dispatch
+  /// event happens to carry, then forwards the event unchanged. Role and
+  /// ban events aren't reflected here: [Guild] has no mutable roles view
+  /// to patch in place, and bans aren't cached at all — both are still
+  /// available fresh via [roles]/[GuildBanRestManager] directly.
+  ///
+  /// `*_UPDATE` events that carry only a partial payload
+  /// ([ChannelUpdateEvent]) remove the stale cache entry rather than risk
+  /// caching incomplete data — the next [channel] call re-fetches it.
+  void _handleEvent(GatewayEvent event) {
+    switch (event) {
+      case ReadyEvent(:final user):
+        _userCache.set(user.id, user);
+      case GuildCreateEvent(:final guild):
+        _guildCache.set(guild.id, guild);
+      case GuildUpdateEvent(:final guild):
+        _guildCache.set(guild.id, guild);
+      case GuildDeleteEvent(:final guildId):
+        _guildCache.remove(guildId);
+      case ChannelCreateEvent(:final channel):
+        _channelCache.set(channel.id, channel);
+      case ChannelUpdateEvent(:final channelId):
+        _channelCache.remove(channelId);
+      case ChannelDeleteEvent(:final channelId):
+        _channelCache.remove(channelId);
+      case GuildMemberAddEvent(:final guildId, :final member):
+        _memberCache.set((guildId, member.user.id), member);
+        _userCache.set(member.user.id, member.user);
+      case GuildMemberUpdateEvent(:final guildId, :final member):
+        _memberCache.set((guildId, member.user.id), member);
+        _userCache.set(member.user.id, member.user);
+      case GuildMemberRemoveEvent(:final guildId, :final user):
+        _memberCache.remove((guildId, user.id));
+      case MessageCreateEvent(:final message):
+        _userCache.set(message.author.id, message.author);
+      case ResumedEvent():
+      case MessageUpdateEvent():
+      case MessageDeleteEvent():
+      case MessageReactionAddEvent():
+      case MessageReactionRemoveEvent():
+      case TypingStartEvent():
+      case GuildRoleCreateEvent():
+      case GuildRoleUpdateEvent():
+      case GuildRoleDeleteEvent():
+      case GuildBanAddEvent():
+      case GuildBanRemoveEvent():
+      case UnknownDispatchEvent():
+        break;
+    }
+    _eventsController.add(event);
+  }
+
+  /// [userId]'s cached [User], or `null` if it hasn't been seen yet —
+  /// there's no `GET /users/{id}` manager to fall back to, unlike
+  /// [guild]/[channel]/[member], so this is cache-only.
+  User? user(Snowflake userId) => _userCache.get(userId);
+
+  /// [guildId]'s [Guild], from cache if present, otherwise fetched via
+  /// [guilds] and cached for next time.
+  Future<Guild> guild(Snowflake guildId) async {
+    final cached = _guildCache.get(guildId);
+    if (cached != null) return cached;
+    final fetched = await guilds.get(guildId);
+    _guildCache.set(guildId, fetched);
+    return fetched;
+  }
+
+  /// [channelId]'s [Channel], from cache if present, otherwise fetched via
+  /// [channels] and cached for next time.
+  Future<Channel> channel(Snowflake channelId) async {
+    final cached = _channelCache.get(channelId);
+    if (cached != null) return cached;
+    final fetched = await channels.get(channelId);
+    _channelCache.set(channelId, fetched);
+    return fetched;
+  }
+
+  /// [userId]'s [GuildMember] in [guildId], from cache if present,
+  /// otherwise fetched via [members] and cached for next time.
+  Future<GuildMember> member(Snowflake guildId, Snowflake userId) async {
+    final cached = _memberCache.get((guildId, userId));
+    if (cached != null) return cached;
+    final fetched = await members.get(guildId, userId);
+    _memberCache.set((guildId, userId), fetched);
+    return fetched;
+  }
+
+  /// Sends [builder] to the channel [message] was posted in.
+  Future<Message> reply(Message message, MessageBuilder builder) =>
+      messages.send(message.channelId, builder);
 
   Future<void> close() async {
     await _eventsSubscription?.cancel();

@@ -198,6 +198,323 @@ void main() {
     });
   });
 
+  group('Bot caching', () {
+    late MockHttpTransport httpTransport;
+    late MockGatewayConnection gatewayConnection;
+    late StreamController<GatewayEvent> gatewayEvents;
+    late List<String> requestedPaths;
+    late Bot bot;
+
+    const guildId = Snowflake(100);
+    const channelId = Snowflake(200);
+    const userId = Snowflake(300);
+
+    setUp(() {
+      httpTransport = MockHttpTransport();
+      gatewayConnection = MockGatewayConnection();
+      gatewayEvents = StreamController<GatewayEvent>.broadcast();
+      requestedPaths = [];
+
+      when(
+        () => gatewayConnection.events,
+      ).thenAnswer((_) => gatewayEvents.stream);
+      when(
+        () => gatewayConnection.stateChanges,
+      ).thenAnswer((_) => const Stream<GatewayConnectionState>.empty());
+      when(() => gatewayConnection.connect()).thenAnswer((_) async {});
+      when(() => gatewayConnection.dispose()).thenAnswer((_) async {});
+      when(() => gatewayConnection.state).thenReturn(const Disconnected());
+
+      when(() => httpTransport.send(any())).thenAnswer((invocation) async {
+        final request =
+            invocation.positionalArguments[0] as HttpTransportRequest;
+        requestedPaths.add(request.path);
+        return switch (request.path) {
+          '/gateway/bot' => const HttpTransportResponse(
+            statusCode: 200,
+            headers: {},
+            body:
+                '{"url": "wss://gateway.fluxer.app", "shards": 1, '
+                '"session_start_limit": {"total": 1000, "remaining": 999, "reset_after": 86400000, "max_concurrency": 1}}',
+          ),
+          '/guilds/$guildId' => const HttpTransportResponse(
+            statusCode: 200,
+            headers: {},
+            body:
+                '{"id": "100", "name": "fetched guild", "icon": null, '
+                '"owner_id": "1", "roles": [], "member_count": 1}',
+          ),
+          '/channels/$channelId' => const HttpTransportResponse(
+            statusCode: 200,
+            headers: {},
+            body:
+                '{"id": "200", "type": 0, "name": "fetched-channel", '
+                '"guild_id": "100", "topic": null, "position": 0, '
+                '"parent_id": null, "last_message_id": null, "nsfw": false, '
+                '"rate_limit_per_user": 0}',
+          ),
+          '/guilds/$guildId/members/$userId' => const HttpTransportResponse(
+            statusCode: 200,
+            headers: {},
+            body:
+                '{"user": {"id": "300", "username": "fetched", '
+                '"discriminator": "0", "global_name": null, "avatar": null, '
+                '"avatar_color": null, "bot": false, "system": false}, '
+                '"nick": null, "avatar": null, "roles": [], '
+                '"joined_at": "2026-01-01T00:00:00.000Z", "mute": false, '
+                '"deaf": false, "communication_disabled_until": null}',
+          ),
+          _ => throw StateError('unexpected request: ${request.path}'),
+        };
+      });
+
+      bot = Bot(
+        token: 'test-token',
+        restClient: RestClient(token: 'test-token', transport: httpTransport),
+        gatewayConnectionFactory: (shardId, shardCount, url, token) =>
+            gatewayConnection,
+      );
+    });
+
+    tearDown(() async {
+      await bot.dispose();
+      await gatewayEvents.close();
+    });
+
+    const user = User(
+      id: userId,
+      username: 'someone',
+      discriminator: '0',
+      globalName: null,
+      avatar: null,
+      avatarColor: null,
+      bot: false,
+      system: false,
+    );
+
+    test(
+      'guild() returns the GUILD_CREATE-cached guild without hitting REST',
+      () async {
+        await bot.login();
+        const guild = Guild(
+          id: guildId,
+          name: 'cached guild',
+          icon: null,
+          ownerId: Snowflake(1),
+          roles: [],
+          memberCount: 1,
+        );
+        gatewayEvents.add(GuildCreateEvent(guild));
+        await Future<void>.delayed(Duration.zero);
+
+        final result = await bot.guild(guildId);
+
+        expect(result.name, 'cached guild');
+        expect(requestedPaths, ['/gateway/bot']);
+      },
+    );
+
+    test(
+      'guild() falls back to REST on a cache miss and caches the result',
+      () async {
+        await bot.login();
+
+        final first = await bot.guild(guildId);
+        final second = await bot.guild(guildId);
+
+        expect(first.name, 'fetched guild');
+        expect(identical(first, second), isTrue);
+        expect(requestedPaths, ['/gateway/bot', '/guilds/$guildId']);
+      },
+    );
+
+    test('GUILD_DELETE evicts the guild so guild() re-fetches', () async {
+      await bot.login();
+      const guild = Guild(
+        id: guildId,
+        name: 'cached guild',
+        icon: null,
+        ownerId: Snowflake(1),
+        roles: [],
+        memberCount: 1,
+      );
+      gatewayEvents.add(GuildCreateEvent(guild));
+      await Future<void>.delayed(Duration.zero);
+
+      gatewayEvents.add(
+        const GuildDeleteEvent(guildId: guildId, unavailable: null),
+      );
+      await Future<void>.delayed(Duration.zero);
+
+      final result = await bot.guild(guildId);
+
+      expect(result.name, 'fetched guild');
+      expect(requestedPaths, ['/gateway/bot', '/guilds/$guildId']);
+    });
+
+    test('CHANNEL_UPDATE evicts the channel so channel() re-fetches', () async {
+      await bot.login();
+      const channel = GuildTextChannel(
+        id: channelId,
+        name: 'cached-channel',
+        guildId: guildId,
+        topic: null,
+        position: 0,
+        parentId: null,
+        lastMessageId: null,
+        nsfw: false,
+        rateLimitPerUser: 0,
+      );
+      gatewayEvents.add(ChannelCreateEvent(channel));
+      await Future<void>.delayed(Duration.zero);
+
+      gatewayEvents.add(
+        ChannelUpdateEvent(
+          channelId: channelId,
+          channelType: ChannelType.guildText,
+          data: const {},
+        ),
+      );
+      await Future<void>.delayed(Duration.zero);
+
+      final result = await bot.channel(channelId);
+
+      expect(result, isA<GuildTextChannel>());
+      expect((result as GuildTextChannel).name, 'fetched-channel');
+      expect(requestedPaths, ['/gateway/bot', '/channels/$channelId']);
+    });
+
+    test(
+      'member() returns the GUILD_MEMBER_ADD-cached member without hitting REST',
+      () async {
+        await bot.login();
+        final member = GuildMember(
+          user: user,
+          nick: 'cached nick',
+          avatar: null,
+          roleIds: const [],
+          joinedAt: DateTime.utc(2026),
+          mute: false,
+          deaf: false,
+          communicationDisabledUntil: null,
+        );
+        gatewayEvents.add(
+          GuildMemberAddEvent(guildId: guildId, member: member),
+        );
+        await Future<void>.delayed(Duration.zero);
+
+        final result = await bot.member(guildId, userId);
+
+        expect(result.nick, 'cached nick');
+        expect(requestedPaths, ['/gateway/bot']);
+      },
+    );
+
+    test(
+      'GUILD_MEMBER_REMOVE evicts the member so member() re-fetches',
+      () async {
+        await bot.login();
+        final member = GuildMember(
+          user: user,
+          nick: 'cached nick',
+          avatar: null,
+          roleIds: const [],
+          joinedAt: DateTime.utc(2026),
+          mute: false,
+          deaf: false,
+          communicationDisabledUntil: null,
+        );
+        gatewayEvents.add(
+          GuildMemberAddEvent(guildId: guildId, member: member),
+        );
+        await Future<void>.delayed(Duration.zero);
+
+        gatewayEvents.add(GuildMemberRemoveEvent(guildId: guildId, user: user));
+        await Future<void>.delayed(Duration.zero);
+
+        final result = await bot.member(guildId, userId);
+
+        expect(result.nick, isNull);
+        expect(requestedPaths, [
+          '/gateway/bot',
+          '/guilds/$guildId/members/$userId',
+        ]);
+      },
+    );
+
+    test(
+      'user() returns null until a MESSAGE_CREATE (or similar) has surfaced them',
+      () async {
+        await bot.login();
+        expect(bot.user(userId), isNull);
+
+        gatewayEvents.add(
+          MessageCreateEvent(
+            Message(
+              id: const Snowflake(1),
+              channelId: channelId,
+              author: user,
+              type: 0,
+              flags: 0,
+              content: 'hi',
+              timestamp: DateTime.utc(2026),
+              editedTimestamp: null,
+              pinned: false,
+              mentionEveryone: false,
+              tts: false,
+              mentions: const [],
+              mentionRoleIds: const [],
+            ),
+          ),
+        );
+        await Future<void>.delayed(Duration.zero);
+
+        expect(bot.user(userId)?.username, 'someone');
+      },
+    );
+
+    test('reply() sends to the message\'s own channel', () async {
+      await bot.login();
+      final message = Message(
+        id: const Snowflake(1),
+        channelId: channelId,
+        author: user,
+        type: 0,
+        flags: 0,
+        content: 'hi',
+        timestamp: DateTime.utc(2026),
+        editedTimestamp: null,
+        pinned: false,
+        mentionEveryone: false,
+        tts: false,
+        mentions: const [],
+        mentionRoleIds: const [],
+      );
+
+      when(() => httpTransport.send(any())).thenAnswer((invocation) async {
+        final request =
+            invocation.positionalArguments[0] as HttpTransportRequest;
+        requestedPaths.add(request.path);
+        return const HttpTransportResponse(
+          statusCode: 200,
+          headers: {},
+          body:
+              '{"id": "2", "channel_id": "200", "author": {"id": "300", '
+              '"username": "someone", "discriminator": "0", "global_name": null, '
+              '"avatar": null, "avatar_color": null, "bot": false, "system": false}, '
+              '"type": 0, "flags": 0, "content": "pong", "timestamp": '
+              '"2026-01-01T00:00:00.000Z", "edited_timestamp": null, "pinned": false, '
+              '"mention_everyone": false, "tts": false, "mentions": [], "mention_roles": []}',
+        );
+      });
+
+      final sent = await bot.reply(message, MessageBuilder(content: 'pong'));
+
+      expect(sent.content, 'pong');
+      expect(requestedPaths.last, '/channels/$channelId/messages');
+    });
+  });
+
   group('Bot with multiple shards', () {
     test(
       'login() builds one GatewayConnection per shard, each with its own shardId',
