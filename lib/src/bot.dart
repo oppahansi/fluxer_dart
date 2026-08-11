@@ -70,15 +70,36 @@ final class Bot {
   Stream<GatewayConnectionState> get connectionStateChanges =>
       _stateController.stream;
 
-  // Stream has no whereType (that's an Iterable method) — filter+cast by hand.
-  Stream<ReadyEvent> get onReady =>
-      events.where((e) => e is ReadyEvent).cast<ReadyEvent>();
-  Stream<ResumedEvent> get onResumed =>
-      events.where((e) => e is ResumedEvent).cast<ResumedEvent>();
-  Stream<MessageCreateEvent> get onMessageCreate =>
-      events.where((e) => e is MessageCreateEvent).cast<MessageCreateEvent>();
-  Stream<GuildCreateEvent> get onGuildCreate =>
-      events.where((e) => e is GuildCreateEvent).cast<GuildCreateEvent>();
+  // Stream has no whereType (that's an Iterable method) — filter+cast by
+  // hand, once here rather than 22 times below.
+  Stream<T> _narrow<T extends GatewayEvent>() =>
+      events.where((e) => e is T).cast<T>();
+
+  Stream<ReadyEvent> get onReady => _narrow();
+  Stream<ResumedEvent> get onResumed => _narrow();
+
+  Stream<MessageCreateEvent> get onMessageCreate => _narrow();
+  Stream<MessageUpdateEvent> get onMessageUpdate => _narrow();
+  Stream<MessageDeleteEvent> get onMessageDelete => _narrow();
+  Stream<MessageReactionAddEvent> get onMessageReactionAdd => _narrow();
+  Stream<MessageReactionRemoveEvent> get onMessageReactionRemove => _narrow();
+  Stream<TypingStartEvent> get onTypingStart => _narrow();
+
+  Stream<GuildCreateEvent> get onGuildCreate => _narrow();
+  Stream<GuildUpdateEvent> get onGuildUpdate => _narrow();
+  Stream<GuildDeleteEvent> get onGuildDelete => _narrow();
+  Stream<GuildRoleCreateEvent> get onGuildRoleCreate => _narrow();
+  Stream<GuildRoleUpdateEvent> get onGuildRoleUpdate => _narrow();
+  Stream<GuildRoleDeleteEvent> get onGuildRoleDelete => _narrow();
+  Stream<GuildMemberAddEvent> get onGuildMemberAdd => _narrow();
+  Stream<GuildMemberUpdateEvent> get onGuildMemberUpdate => _narrow();
+  Stream<GuildMemberRemoveEvent> get onGuildMemberRemove => _narrow();
+  Stream<GuildBanAddEvent> get onGuildBanAdd => _narrow();
+  Stream<GuildBanRemoveEvent> get onGuildBanRemove => _narrow();
+
+  Stream<ChannelCreateEvent> get onChannelCreate => _narrow();
+  Stream<ChannelUpdateEvent> get onChannelUpdate => _narrow();
+  Stream<ChannelDeleteEvent> get onChannelDelete => _narrow();
 
   GatewayConnectionState get connectionState =>
       _gateway?.state ?? const Disconnected();

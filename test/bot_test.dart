@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:fluxer/fluxer.dart';
-import 'package:fluxer_rest/fluxer_rest.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:test/test.dart';
 
@@ -131,6 +130,36 @@ void main() {
         await Future<void>.delayed(Duration.zero);
 
         expect(received, [event]);
+      },
+    );
+
+    test(
+      'the narrowed onXyz streams only deliver their own event type, not siblings',
+      () async {
+        await bot.login();
+
+        final messageDeletes = <MessageDeleteEvent>[];
+        final channelDeletes = <ChannelDeleteEvent>[];
+        bot.onMessageDelete.listen(messageDeletes.add);
+        bot.onChannelDelete.listen(channelDeletes.add);
+
+        gatewayEvents.add(
+          const MessageDeleteEvent(
+            messageId: Snowflake(1),
+            channelId: Snowflake(2),
+          ),
+        );
+        gatewayEvents.add(
+          const ChannelDeleteEvent(
+            channelId: Snowflake(3),
+            channelType: ChannelType.guildText,
+            guildId: null,
+          ),
+        );
+        await Future<void>.delayed(Duration.zero);
+
+        expect(messageDeletes, hasLength(1));
+        expect(channelDeletes, hasLength(1));
       },
     );
 

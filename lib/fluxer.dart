@@ -3,38 +3,17 @@
 /// of the ecosystem.
 library;
 
+// Full re-exports, not curated `show` lists: hand-picking names here was
+// already a maintenance trap by M3 (RestClient itself — a public `Bot`
+// field's type — had been left out) and only gets worse as the event/
+// manager surface keeps growing. The handful of lower-level types this
+// pulls in alongside the ones bot authors actually reach for
+// (GatewayOpcode, HeartbeatManager, HttpTransport, ...) are exactly what
+// a power user customizing `Bot`'s `gatewayConnectionFactory`/`restClient`
+// injection points needs anyway.
 export 'package:fluxer_core/fluxer_core.dart';
-export 'package:fluxer_gateway/fluxer_gateway.dart'
-    show
-        Closed,
-        Connected,
-        Connecting,
-        Disconnected,
-        GatewayConnection,
-        GatewayConnectionState,
-        GatewayEvent,
-        GuildCreateEvent,
-        Identifying,
-        MessageCreateEvent,
-        ReadyEvent,
-        Reconnecting,
-        ResumedEvent,
-        Resuming,
-        UnknownDispatchEvent;
-export 'package:fluxer_rest/fluxer_rest.dart'
-    show
-        ChannelRestManager,
-        GuildBanRestManager,
-        GuildEmojiRestManager,
-        GuildMemberRestManager,
-        GuildRestManager,
-        GuildRoleRestManager,
-        GuildStickerRestManager,
-        InviteRestManager,
-        MessageBuilder,
-        MessageRestManager,
-        WebhookRestManager;
-export 'package:fluxer_utils/fluxer_utils.dart'
-    show LogLevel, Logger, NoopLogger, PrintLogger;
+export 'package:fluxer_gateway/fluxer_gateway.dart';
+export 'package:fluxer_rest/fluxer_rest.dart';
+export 'package:fluxer_utils/fluxer_utils.dart';
 
 export 'src/bot.dart';
