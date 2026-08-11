@@ -47,6 +47,10 @@ final class Bot {
   late final GuildRestManager guilds = GuildRestManager(rest);
   late final ChannelRestManager channels = ChannelRestManager(rest);
   late final MessageRestManager messages = MessageRestManager(rest);
+  late final GuildMemberRestManager members = GuildMemberRestManager(rest);
+  late final GuildBanRestManager bans = GuildBanRestManager(rest);
+  late final GuildEmojiRestManager emojis = GuildEmojiRestManager(rest);
+  late final WebhookRestManager webhooks = WebhookRestManager(rest);
   late final GatewayRestManager _gatewayRest = GatewayRestManager(rest);
 
   final _eventsController = StreamController<GatewayEvent>.broadcast();

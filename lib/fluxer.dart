@@ -24,9 +24,13 @@ export 'package:fluxer_gateway/fluxer_gateway.dart'
 export 'package:fluxer_rest/fluxer_rest.dart'
     show
         ChannelRestManager,
+        GuildBanRestManager,
+        GuildEmojiRestManager,
+        GuildMemberRestManager,
         GuildRestManager,
         MessageBuilder,
-        MessageRestManager;
+        MessageRestManager,
+        WebhookRestManager;
 export 'package:fluxer_utils/fluxer_utils.dart'
     show LogLevel, Logger, NoopLogger, PrintLogger;
 

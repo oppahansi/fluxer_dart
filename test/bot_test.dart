@@ -72,6 +72,13 @@ void main() {
       expect(bot.connectionState, isA<Disconnected>());
     });
 
+    test('exposes the M2 REST managers', () {
+      expect(bot.members, isA<GuildMemberRestManager>());
+      expect(bot.bans, isA<GuildBanRestManager>());
+      expect(bot.emojis, isA<GuildEmojiRestManager>());
+      expect(bot.webhooks, isA<WebhookRestManager>());
+    });
+
     test(
       'login() resolves the gateway URL via REST, then builds and connects the gateway',
       () async {
