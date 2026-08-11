@@ -429,7 +429,9 @@ void main() {
         );
         await Future<void>.delayed(Duration.zero);
 
-        gatewayEvents.add(GuildMemberRemoveEvent(guildId: guildId, user: user));
+        gatewayEvents.add(
+          GuildMemberRemoveEvent(guildId: guildId, userId: userId),
+        );
         await Future<void>.delayed(Duration.zero);
 
         final result = await bot.member(guildId, userId);

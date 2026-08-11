@@ -194,8 +194,8 @@ final class Bot {
       case GuildMemberUpdateEvent(:final guildId, :final member):
         _memberCache.set((guildId, member.user.id), member);
         _userCache.set(member.user.id, member.user);
-      case GuildMemberRemoveEvent(:final guildId, :final user):
-        _memberCache.remove((guildId, user.id));
+      case GuildMemberRemoveEvent(:final guildId, :final userId):
+        _memberCache.remove((guildId, userId));
       case MessageCreateEvent(:final message):
         _userCache.set(message.author.id, message.author);
       case ResumedEvent():
