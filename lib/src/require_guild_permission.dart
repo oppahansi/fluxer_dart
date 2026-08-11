@@ -23,12 +23,7 @@ CommandMiddleware requireGuildPermission(PermissionFlag flag) {
   return (context) async {
     final message = context.message;
     final channel = await context.bot.channel(message.channelId);
-    final guildId = switch (channel) {
-      GuildTextChannel(:final guildId) => guildId,
-      GuildVoiceChannel(:final guildId) => guildId,
-      GuildCategoryChannel(:final guildId) => guildId,
-      _ => null,
-    };
+    final guildId = channel.guildId;
     if (guildId == null) {
       await context.reply(
         MessageBuilder(content: 'This command only works in a guild channel.'),
