@@ -3,14 +3,12 @@
 /// of the ecosystem.
 library;
 
-// Full re-exports, not curated `show` lists: hand-picking names here was
-// already a maintenance trap by M3 (RestClient itself — a public `Bot`
-// field's type — had been left out) and only gets worse as the event/
-// manager surface keeps growing. The handful of lower-level types this
-// pulls in alongside the ones bot authors actually reach for
-// (GatewayOpcode, HeartbeatManager, HttpTransport, ...) are exactly what
-// a power user customizing `Bot`'s `gatewayConnectionFactory`/`restClient`
-// injection points needs anyway.
+// Full re-exports, not curated `show` lists: a curated list has to be kept
+// in sync with every type a public `Bot` field or method exposes (e.g.
+// RestClient), and the lower-level types this pulls in alongside the ones
+// bot authors typically reach for (GatewayOpcode, HeartbeatManager,
+// HttpTransport, ...) are exactly what a power user customizing `Bot`'s
+// `gatewayConnectionFactory`/`restClient` injection points needs anyway.
 export 'package:fluxer_core/fluxer_core.dart';
 export 'package:fluxer_gateway/fluxer_gateway.dart';
 export 'package:fluxer_rest/fluxer_rest.dart';
