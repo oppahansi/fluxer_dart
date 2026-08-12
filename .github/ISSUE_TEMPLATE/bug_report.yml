@@ -1,0 +1,63 @@
+name: Bug report
+description: Something in fluxer_dart isn't working as expected
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug. If this is about
+        Fluxer itself (the platform, not this package), please report it
+        to [Fluxer](https://fluxer.app) directly instead.
+
+  - type: input
+    id: version
+    attributes:
+      label: Package version
+      description: The `fluxer_dart` version (or commit hash) you're using
+      placeholder: "0.1.0, or commit abc1234"
+    validations:
+      required: true
+
+  - type: input
+    id: dart-version
+    attributes:
+      label: Dart SDK version
+      description: Output of `dart --version`
+    validations:
+      required: true
+
+  - type: dropdown
+    id: instance
+    attributes:
+      label: Fluxer instance
+      options:
+        - api.fluxer.app (production)
+        - Self-hosted
+        - Not applicable
+    validations:
+      required: true
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: A clear description of the bug, and what you expected instead
+    validations:
+      required: true
+
+  - type: textarea
+    id: repro
+    attributes:
+      label: Reproduction steps
+      description: Minimal code or steps to reproduce — the smaller the better
+      render: dart
+    validations:
+      required: false
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant logs or error output
+      render: shell
+    validations:
+      required: false
