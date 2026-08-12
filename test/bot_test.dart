@@ -79,6 +79,7 @@ void main() {
       expect(bot.roles, isA<GuildRoleRestManager>());
       expect(bot.invites, isA<InviteRestManager>());
       expect(bot.webhooks, isA<WebhookRestManager>());
+      expect(bot.users, isA<UserRestManager>());
     });
 
     test(

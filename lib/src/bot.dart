@@ -74,6 +74,7 @@ final class Bot {
   late final GuildRoleRestManager roles = GuildRoleRestManager(rest);
   late final InviteRestManager invites = InviteRestManager(rest);
   late final WebhookRestManager webhooks = WebhookRestManager(rest);
+  late final UserRestManager users = UserRestManager(rest);
   late final GatewayRestManager _gatewayRest = GatewayRestManager(rest);
 
   final _eventsController = StreamController<GatewayEvent>.broadcast();
