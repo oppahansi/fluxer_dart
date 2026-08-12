@@ -1,0 +1,12 @@
+# Copy this to pubspec_overrides.yaml (gitignored, not this file) to
+# develop against local sibling checkouts instead of their tagged git
+# refs — same idea as .env.example, see CONTRIBUTING.md.
+dependency_overrides:
+  fluxer_dart_core:
+    path: ../fluxer_dart_core
+  fluxer_dart_gateway:
+    path: ../fluxer_dart_gateway
+  fluxer_dart_rest:
+    path: ../fluxer_dart_rest
+  fluxer_dart_utils:
+    path: ../fluxer_dart_utils

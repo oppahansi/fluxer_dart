@@ -1,0 +1,40 @@
+name: fluxer_dart
+description: >-
+  A bot framework for Fluxer. The Bot facade ties together fluxer_dart_gateway,
+  fluxer_dart_rest, fluxer_dart_core, and fluxer_dart_utils behind one clean, ergonomic
+  entry point for bot authors.
+version: 0.1.0
+homepage: https://github.com/oppahansi/fluxer_dart
+repository: https://github.com/oppahansi/fluxer_dart
+# Not on pub.dev yet — remove this line once it's actually published there.
+publish_to: 'none'
+
+environment:
+  sdk: ^3.12.2
+
+dependencies:
+  # Pinned to a tagged sibling release so a plain `dart pub get` works
+  # for anyone who clones just this repo. Local development overrides
+  # these to sibling directories via pubspec_overrides.yaml (gitignored,
+  # not this file) — see CONTRIBUTING.md.
+  fluxer_dart_core:
+    git:
+      url: https://github.com/oppahansi/fluxer_dart_core.git
+      ref: v0.1.0
+  fluxer_dart_gateway:
+    git:
+      url: https://github.com/oppahansi/fluxer_dart_gateway.git
+      ref: v0.1.0
+  fluxer_dart_rest:
+    git:
+      url: https://github.com/oppahansi/fluxer_dart_rest.git
+      ref: v0.1.0
+  fluxer_dart_utils:
+    git:
+      url: https://github.com/oppahansi/fluxer_dart_utils.git
+      ref: v0.1.0
+
+dev_dependencies:
+  lints: ^6.1.0
+  mocktail: ^1.0.5
+  test: ^1.31.2

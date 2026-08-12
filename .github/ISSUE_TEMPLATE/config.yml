@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Wrong repo?
+    url: https://github.com/oppahansi/fluxer_dart#part-of-the-fluxer_dart-ecosystem
+    about: This is one of seven repos in the fluxer_dart ecosystem — see this list if your issue belongs in a different one

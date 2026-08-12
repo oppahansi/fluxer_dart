@@ -1,0 +1,28 @@
+# Dart / Pub
+.dart_tool/
+.packages
+build/
+pubspec.lock
+*.freezed.dart
+*.g.dart
+doc/api/
+pubspec_overrides.yaml
+
+# IDE
+.vscode/
+.idea/
+*.iml
+
+# OS
+.DS_Store
+
+# Env / secrets
+.env
+.env.*
+!.env.example
+
+# AI-authorship files kept out of this repo on purpose — planning docs
+# live in the separate claude/fluxer workspace instead.
+CLAUDE.md
+.claude/
+AGENTS.md
