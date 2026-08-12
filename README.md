@@ -70,6 +70,17 @@ Login, sharding, reconnect/resume, typed event streams for 22 dispatch
 events, the full REST resource-manager surface, cache-aside resource
 lookups, and message-content command routing.
 
+## Fluxer version
+
+Verified against Fluxer's REST API version `1.0.0` and gateway protocol
+version `1`, checked against a self-hosted instance running image tag
+`v1` as of 2026-08-12 — see
+[`fluxer_dart_core`](https://github.com/oppahansi/fluxer_dart_core)'s
+README for how that was checked. Fluxer doesn't publish a versioning
+policy or changelog beyond the OpenAPI spec's own `info.version` field,
+so nothing here is guaranteed to track future platform changes
+automatically.
+
 ## Part of the fluxer_dart ecosystem
 
 | Package | Purpose |
