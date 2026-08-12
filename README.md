@@ -95,15 +95,18 @@ automatically.
 
 ## Installation
 
-Not yet published to pub.dev. During development, depend on it via a path or
-git dependency:
+Not yet published to pub.dev — depend on it via a git dependency, pinned
+to a tagged release:
 
 ```yaml
 dependencies:
   fluxer_dart:
     git:
       url: https://github.com/oppahansi/fluxer_dart.git
+      ref: v0.2.0
 ```
+
+See [CHANGELOG.md](CHANGELOG.md) for what's in each tagged release.
 
 ## License
 

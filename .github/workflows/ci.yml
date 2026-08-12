@@ -19,39 +19,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          path: fluxer_dart
 
-      # Sibling packages this repo depends on via local path: entries in
-      # pubspec.yaml — dart pub get can't resolve those unless the sibling
-      # repos are checked out alongside this one, matching the same flat
-      # layout CONTRIBUTING.md has contributors clone locally.
-      - uses: actions/checkout@v4
-        with:
-          repository: oppahansi/fluxer_dart_core
-          path: fluxer_dart_core
-      - uses: actions/checkout@v4
-        with:
-          repository: oppahansi/fluxer_dart_gateway
-          path: fluxer_dart_gateway
-      - uses: actions/checkout@v4
-        with:
-          repository: oppahansi/fluxer_dart_rest
-          path: fluxer_dart_rest
-      - uses: actions/checkout@v4
-        with:
-          repository: oppahansi/fluxer_dart_utils
-          path: fluxer_dart_utils
-
+      # Sibling packages are real git dependencies pinned to a tagged ref
+      # in pubspec.yaml (see pubspec_overrides.yaml.example for the local
+      # path-override alternative), so a plain checkout + pub get is
+      # enough here — no sibling repos need checking out separately.
       - uses: dart-lang/setup-dart@v1
         with:
           sdk: stable
 
       - run: dart pub get
-        working-directory: fluxer_dart
       - run: dart format --output=none --set-exit-if-changed .
-        working-directory: fluxer_dart
       - run: dart analyze --fatal-infos
-        working-directory: fluxer_dart
       - run: dart test
-        working-directory: fluxer_dart

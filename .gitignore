@@ -6,6 +6,7 @@ pubspec.lock
 *.freezed.dart
 *.g.dart
 doc/api/
+pubspec_overrides.yaml
 
 # IDE
 .vscode/

@@ -18,27 +18,34 @@ Depends on `fluxer_dart_core`, `fluxer_dart_rest`, `fluxer_dart_gateway`, and `f
 
 ## Local development setup
 
-The packages depend on each other via local `path:` entries in
-`pubspec.yaml` during development, so clone the repos you need as
-sibling directories (matching the names above) rather than in
-isolation:
+`pubspec.yaml`'s sibling dependencies (`fluxer_dart_core`,
+`fluxer_dart_gateway`, `fluxer_dart_rest`, `fluxer_dart_utils`) are real
+git dependencies pinned to a tagged release, so a plain clone of just
+this repo already works:
 
 ```sh
-mkdir fluxer_dart_workspace && cd fluxer_dart_workspace
-git clone https://github.com/oppahansi/fluxer_dart_utils.git
-git clone https://github.com/oppahansi/fluxer_dart_core.git
-git clone https://github.com/oppahansi/fluxer_dart_rest.git
-git clone https://github.com/oppahansi/fluxer_dart_gateway.git
-git clone https://github.com/oppahansi/fluxer_dart_voice.git
 git clone https://github.com/oppahansi/fluxer_dart.git
-git clone https://github.com/oppahansi/fluxer_dart_bot.git
-```
-
-Then, in fluxer_dart:
-
-```sh
+cd fluxer_dart
 dart pub get
 dart test
+```
+
+**If you're changing a sibling package too** (e.g. adding something to
+`fluxer_dart_rest` that this repo needs before it's tagged), clone the
+siblings you're touching next to this repo and copy
+`pubspec_overrides.yaml.example` to `pubspec_overrides.yaml`
+(gitignored — same idea as `.env.example`) to develop against those
+local checkouts instead of the pinned tag:
+
+```sh
+cd ..
+git clone https://github.com/oppahansi/fluxer_dart_core.git
+git clone https://github.com/oppahansi/fluxer_dart_gateway.git
+git clone https://github.com/oppahansi/fluxer_dart_rest.git
+git clone https://github.com/oppahansi/fluxer_dart_utils.git
+cd fluxer_dart
+cp pubspec_overrides.yaml.example pubspec_overrides.yaml
+dart pub get
 ```
 
 ## Before opening a pull request
