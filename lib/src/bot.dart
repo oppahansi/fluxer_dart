@@ -33,6 +33,9 @@ final class Bot {
     CacheProvider<Snowflake, Channel>? channelCache,
     CacheProvider<Snowflake, User>? userCache,
     CacheProvider<(Snowflake, Snowflake), GuildMember>? memberCache,
+    this.ignoredEvents = const {},
+    this.initialPresence,
+    this.sessionFlags = SessionFlags.none,
   }) : logger = logger ?? const NoopLogger(),
        rest =
            restClient ??
@@ -56,6 +59,21 @@ final class Bot {
   /// [GatewayShardManager].
   final Duration identifyPacing;
 
+  /// Dispatch names the server drops before they reach this bot.
+  ///
+  /// Fluxer has no intent bitfield, so this is how a bot opts out of
+  /// traffic it does not use. Names are upper-cased before being sent,
+  /// and at most 256 are accepted. A `MESSAGE_CREATE` still arrives
+  /// despite being listed if the message mentions this bot, or sets
+  /// `mention_here` or `mention_everyone`.
+  final Set<String> ignoredEvents;
+
+  /// Presence published when each shard identifies.
+  final Presence? initialPresence;
+
+  /// Session behaviour flags sent with IDENTIFY.
+  final SessionFlags sessionFlags;
+
   final GatewayConnection Function(
     int shardId,
     int shardCount,
@@ -75,6 +93,7 @@ final class Bot {
   late final InviteRestManager invites = InviteRestManager(rest);
   late final WebhookRestManager webhooks = WebhookRestManager(rest);
   late final UserRestManager users = UserRestManager(rest);
+  late final AttachmentRestManager attachments = AttachmentRestManager(rest);
   late final GatewayRestManager _gatewayRest = GatewayRestManager(rest);
 
   final _eventsController = StreamController<GatewayEvent>.broadcast();
@@ -106,6 +125,7 @@ final class Bot {
 
   Stream<ReadyEvent> get onReady => _narrow();
   Stream<ResumedEvent> get onResumed => _narrow();
+  Stream<SessionsReplaceEvent> get onSessionsReplace => _narrow();
 
   Stream<MessageCreateEvent> get onMessageCreate => _narrow();
   Stream<MessageUpdateEvent> get onMessageUpdate => _narrow();
@@ -129,6 +149,22 @@ final class Bot {
   Stream<ChannelCreateEvent> get onChannelCreate => _narrow();
   Stream<ChannelUpdateEvent> get onChannelUpdate => _narrow();
   Stream<ChannelDeleteEvent> get onChannelDelete => _narrow();
+  Stream<ChannelPinsUpdateEvent> get onChannelPinsUpdate => _narrow();
+
+  Stream<MessageDeleteBulkEvent> get onMessageDeleteBulk => _narrow();
+  Stream<MessageReactionRemoveAllEvent> get onMessageReactionRemoveAll =>
+      _narrow();
+  Stream<MessageReactionRemoveEmojiEvent> get onMessageReactionRemoveEmoji =>
+      _narrow();
+
+  Stream<GuildEmojisUpdateEvent> get onGuildEmojisUpdate => _narrow();
+  Stream<GuildStickersUpdateEvent> get onGuildStickersUpdate => _narrow();
+  Stream<GuildAuditLogEntryCreateEvent> get onGuildAuditLogEntryCreate =>
+      _narrow();
+
+  Stream<WebhooksUpdateEvent> get onWebhooksUpdate => _narrow();
+  Stream<InviteCreateEvent> get onInviteCreate => _narrow();
+  Stream<InviteDeleteEvent> get onInviteDelete => _narrow();
 
   /// Shard 0's connection state — the common case for the small,
   /// single-shard deployments most self-hosted Fluxer instances run. For
@@ -160,6 +196,9 @@ final class Bot {
       maxConcurrency: info.sessionStartLimit.maxConcurrency,
       identifyPacing: identifyPacing,
       logger: logger,
+      ignoredEvents: ignoredEvents,
+      initialPresence: initialPresence,
+      sessionFlags: sessionFlags,
       connectionFactory: factory == null
           ? null
           : (shardId, shardCount) =>
@@ -218,16 +257,74 @@ final class Bot {
       case GuildRoleDeleteEvent():
       case GuildBanAddEvent():
       case GuildBanRemoveEvent():
+      case MessageDeleteBulkEvent():
+      case MessageReactionRemoveAllEvent():
+      case MessageReactionRemoveEmojiEvent():
+      case ChannelPinsUpdateEvent():
+      case GuildEmojisUpdateEvent():
+      case GuildStickersUpdateEvent():
+      case GuildAuditLogEntryCreateEvent():
+      case WebhooksUpdateEvent():
+      case InviteCreateEvent():
+      case InviteDeleteEvent():
+      case SessionsReplaceEvent():
       case UnknownDispatchEvent():
         break;
     }
     _eventsController.add(event);
   }
 
-  /// [userId]'s cached [User], or `null` if it hasn't been seen yet —
-  /// there's no `GET /users/{id}` manager to fall back to, unlike
-  /// [guild]/[channel]/[member], so this is cache-only.
+  /// [userId]'s cached [User], or `null` if it has not been seen yet.
+  ///
+  /// Cache-only and synchronous; [fetchUser] falls back to a REST call.
   User? user(Snowflake userId) => _userCache.get(userId);
+
+  /// [userId]'s [User], from cache if present, otherwise fetched via
+  /// [users] and cached for next time.
+  Future<User> fetchUser(Snowflake userId) async {
+    final cached = _userCache.get(userId);
+    if (cached != null) return cached;
+    final fetched = await users.fetch(userId);
+    _userCache.set(userId, fetched);
+    return fetched;
+  }
+
+  /// Replaces the presence every shard publishes.
+  ///
+  /// Rate limited to five commands per 20 seconds per shard, with no
+  /// acknowledgement either way.
+  void updatePresence(Presence presence) {
+    for (final shard in shards) {
+      shard.updatePresence(presence);
+    }
+  }
+
+  /// Asks for members of [guildId] over the gateway.
+  ///
+  /// Answered asynchronously as `GUILD_MEMBERS_CHUNK` dispatches on
+  /// [events], not as a return value; [GuildMemberRestManager.list] is
+  /// the request/response alternative. Sent on the shard that owns the
+  /// guild, which is `(guildId >> 22) % shardCount`.
+  void requestGuildMembers(
+    Snowflake guildId, {
+    String query = '',
+    int limit = 0,
+    List<Snowflake> userIds = const [],
+    bool presences = false,
+    String? nonce,
+  }) {
+    final all = shards;
+    if (all.isEmpty) return;
+    final shard = all[(guildId.value >> 22) % all.length];
+    shard.requestGuildMembers(
+      guildId,
+      query: query,
+      limit: limit,
+      userIds: userIds,
+      presences: presences,
+      nonce: nonce,
+    );
+  }
 
   /// [guildId]'s [Guild], from cache if present, otherwise fetched via
   /// [guilds] and cached for next time.

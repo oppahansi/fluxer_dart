@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.2.0
+
+- `Bot` gained the `attachments` manager and eleven event streams:
+  `onChannelPinsUpdate`, `onMessageDeleteBulk`,
+  `onMessageReactionRemoveAll`, `onMessageReactionRemoveEmoji`,
+  `onGuildEmojisUpdate`, `onGuildStickersUpdate`,
+  `onGuildAuditLogEntryCreate`, `onWebhooksUpdate`, `onInviteCreate`,
+  `onInviteDelete` and `onSessionsReplace`.
+- `Bot.updatePresence` and `Bot.requestGuildMembers` send the two new
+  gateway commands. `requestGuildMembers` picks the shard that owns the
+  guild.
+- `Bot.fetchUser` resolves a user from cache, falling back to REST.
+  `Bot.user` remains the synchronous cache-only lookup.
+- `Bot` takes `ignoredEvents`, `initialPresence` and `sessionFlags`,
+  passed through to every shard's IDENTIFY.
+
 ## 0.1.0 — Initial release
 
 - `Bot` — the facade tying `fluxer_dart_gateway`, `fluxer_dart_rest`,

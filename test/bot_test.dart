@@ -255,21 +255,21 @@ void main() {
             invocation.positionalArguments[0] as HttpTransportRequest;
         requestedPaths.add(request.path);
         return switch (request.path) {
-          '/gateway/bot' => const HttpTransportResponse(
+          '/v1/gateway/bot' => const HttpTransportResponse(
             statusCode: 200,
             headers: {},
             body:
                 '{"url": "wss://gateway.fluxer.app", "shards": 1, '
                 '"session_start_limit": {"total": 1000, "remaining": 999, "reset_after": 86400000, "max_concurrency": 1}}',
           ),
-          '/guilds/$guildId' => const HttpTransportResponse(
+          '/v1/guilds/$guildId' => const HttpTransportResponse(
             statusCode: 200,
             headers: {},
             body:
                 '{"id": "100", "name": "fetched guild", "icon": null, '
                 '"owner_id": "1", "roles": [], "member_count": 1}',
           ),
-          '/channels/$channelId' => const HttpTransportResponse(
+          '/v1/channels/$channelId' => const HttpTransportResponse(
             statusCode: 200,
             headers: {},
             body:
@@ -278,7 +278,7 @@ void main() {
                 '"parent_id": null, "last_message_id": null, "nsfw": false, '
                 '"rate_limit_per_user": 0}',
           ),
-          '/guilds/$guildId/members/$userId' => const HttpTransportResponse(
+          '/v1/guilds/$guildId/members/$userId' => const HttpTransportResponse(
             statusCode: 200,
             headers: {},
             body:
@@ -337,7 +337,7 @@ void main() {
         final result = await bot.guild(guildId);
 
         expect(result.name, 'cached guild');
-        expect(requestedPaths, ['/gateway/bot']);
+        expect(requestedPaths, ['/v1/gateway/bot']);
       },
     );
 
@@ -351,7 +351,7 @@ void main() {
 
         expect(first.name, 'fetched guild');
         expect(identical(first, second), isTrue);
-        expect(requestedPaths, ['/gateway/bot', '/guilds/$guildId']);
+        expect(requestedPaths, ['/v1/gateway/bot', '/v1/guilds/$guildId']);
       },
     );
 
@@ -378,7 +378,7 @@ void main() {
       final result = await bot.guild(guildId);
 
       expect(result.name, 'fetched guild');
-      expect(requestedPaths, ['/gateway/bot', '/guilds/$guildId']);
+      expect(requestedPaths, ['/v1/gateway/bot', '/v1/guilds/$guildId']);
     });
 
     test('CHANNEL_UPDATE evicts the channel so channel() re-fetches', () async {
@@ -410,7 +410,7 @@ void main() {
 
       expect(result, isA<GuildTextChannel>());
       expect((result as GuildTextChannel).name, 'fetched-channel');
-      expect(requestedPaths, ['/gateway/bot', '/channels/$channelId']);
+      expect(requestedPaths, ['/v1/gateway/bot', '/v1/channels/$channelId']);
     });
 
     test(
@@ -435,7 +435,7 @@ void main() {
         final result = await bot.member(guildId, userId);
 
         expect(result.nick, 'cached nick');
-        expect(requestedPaths, ['/gateway/bot']);
+        expect(requestedPaths, ['/v1/gateway/bot']);
       },
     );
 
@@ -467,8 +467,8 @@ void main() {
 
         expect(result.nick, isNull);
         expect(requestedPaths, [
-          '/gateway/bot',
-          '/guilds/$guildId/members/$userId',
+          '/v1/gateway/bot',
+          '/v1/guilds/$guildId/members/$userId',
         ]);
       },
     );
@@ -542,7 +542,7 @@ void main() {
       final sent = await bot.reply(message, MessageBuilder(content: 'pong'));
 
       expect(sent.content, 'pong');
-      expect(requestedPaths.last, '/channels/$channelId/messages');
+      expect(requestedPaths.last, '/v1/channels/$channelId/messages');
     });
   });
 

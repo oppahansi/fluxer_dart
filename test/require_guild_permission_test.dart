@@ -52,14 +52,14 @@ void main() {
             invocation.positionalArguments[0] as HttpTransportRequest;
         requestedPaths.add(request.path);
         return switch (request.path) {
-          '/guilds/$guildId' => HttpTransportResponse(
+          '/v1/guilds/$guildId' => HttpTransportResponse(
             statusCode: 200,
             headers: const {},
             body:
                 '{"id": "100", "name": "g", "icon": null, '
                 '"owner_id": "$ownerId", "roles": [], "member_count": 1}',
           ),
-          '/channels/$channelId' => const HttpTransportResponse(
+          '/v1/channels/$channelId' => const HttpTransportResponse(
             statusCode: 200,
             headers: {},
             body:
@@ -68,7 +68,7 @@ void main() {
                 '"parent_id": null, "last_message_id": null, "nsfw": false, '
                 '"rate_limit_per_user": 0}',
           ),
-          '/guilds/$guildId/members/$memberId' => const HttpTransportResponse(
+          '/v1/guilds/$guildId/members/$memberId' => const HttpTransportResponse(
             statusCode: 200,
             headers: {},
             body:
@@ -78,7 +78,7 @@ void main() {
                 '"roles": ["400"], "joined_at": "2026-01-01T00:00:00.000Z", '
                 '"mute": false, "deaf": false, "communication_disabled_until": null}',
           ),
-          '/guilds/$guildId/members/$ownerId' => const HttpTransportResponse(
+          '/v1/guilds/$guildId/members/$ownerId' => const HttpTransportResponse(
             statusCode: 200,
             headers: {},
             body:
@@ -88,7 +88,7 @@ void main() {
                 '"roles": [], "joined_at": "2026-01-01T00:00:00.000Z", '
                 '"mute": false, "deaf": false, "communication_disabled_until": null}',
           ),
-          '/guilds/$guildId/roles' => HttpTransportResponse(
+          '/v1/guilds/$guildId/roles' => HttpTransportResponse(
             statusCode: 200,
             headers: const {},
             body:
@@ -97,7 +97,7 @@ void main() {
                 '{"id": "400", "name": "role", "color": 0, "position": 1, '
                 '"permissions": "$rolePermissions", "hoist": false, "mentionable": false}]',
           ),
-          '/channels/$channelId/messages' => const HttpTransportResponse(
+          '/v1/channels/$channelId/messages' => const HttpTransportResponse(
             statusCode: 200,
             headers: {},
             body:
@@ -161,7 +161,7 @@ void main() {
         );
 
         expect(await middleware(context), isFalse);
-        expect(requestedPaths, contains('/channels/$channelId/messages'));
+        expect(requestedPaths, contains('/v1/channels/$channelId/messages'));
       },
     );
   });

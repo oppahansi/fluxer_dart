@@ -22,14 +22,19 @@ Future<void> main() async {
 
 ## Why this exists
 
-Fluxer's own docs are still mostly unwritten placeholders, so this
-framework — and the whole `fluxer_*` package family it's built on — was
-built by reading Fluxer's actual open-source client (`fluxerapp/fluxer`,
-AGPL-3.0) directly: its OpenAPI spec for the REST surface, and
-`GatewayConstants.ts`/`GatewaySocket.ts`/`EventRouter.ts` for the gateway
-wire protocol. See [`fluxer_dart_core`](https://github.com/oppahansi/fluxer_dart_core)
-and [`fluxer_dart_gateway`](https://github.com/oppahansi/fluxer_dart_gateway)'s
-READMEs for exactly what was verified where.
+This framework — and the whole `fluxer_*` package family it is built on
+— models the wire protocol against three sources, in this order:
+[Fluxer's API reference](https://docs.fluxer.app), the deployment's own
+OpenAPI document (`/v1/openapi.json`, served unauthenticated), and the
+open-source server and client (`fluxerapp/fluxer`, AGPL-3.0) for anything
+the first two leave ambiguous.
+
+Gateway dispatch payloads are the exception: they have no schema in any
+of those sources, and several genuinely differ from the same-named REST
+response. Those are modelled from recorded live traffic instead. See
+[`fluxer_dart_core`](https://github.com/oppahansi/fluxer_dart_core) and
+[`fluxer_dart_gateway`](https://github.com/oppahansi/fluxer_dart_gateway)'s
+READMEs for what was taken from where.
 
 ## Design
 
