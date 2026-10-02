@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.3.0
+
+- No new surface of its own. Re-released to pin `fluxer_dart_core`,
+  `fluxer_dart_rest` and `fluxer_dart_gateway` 0.3.0, which add
+  announcement channels and crossposting and fix two decoding crashes.
+- Note that `Message.type` is now a `MessageType?` with the wire value on
+  `Message.rawType`, and `Message.flags` is a `MessageFlags`.
+
 ## 0.2.0
 
 - `Bot` gained the `attachments` manager and eleven event streams:
