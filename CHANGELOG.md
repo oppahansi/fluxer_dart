@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.4.0
+
+- `Bot.threads`, a `ThreadRestManager`.
+- `onThreadCreate`, `onThreadUpdate`, `onThreadDelete`,
+  `onThreadListSync`, `onThreadMemberUpdate` and `onThreadMembersUpdate`.
+- Threads are cached as channels. `Bot.channel(threadId)` returns a
+  `ThreadChannel`, kept current by the thread events and seeded from each
+  guild's active threads at connect. Thread events carry the whole
+  thread, so an update replaces the cached entry rather than evicting it.
+- Deleting a thread's parent channel sends no `THREAD_DELETE` for the
+  threads in it, so those entries stay cached until re-fetched.
+- Pins `fluxer_dart_core`, `fluxer_dart_rest` and `fluxer_dart_gateway`
+  0.4.0.
+
 ## 0.3.0
 
 - No new surface of its own. Re-released to pin `fluxer_dart_core`,

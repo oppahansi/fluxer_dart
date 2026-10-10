@@ -85,6 +85,7 @@ final class Bot {
   late final GuildRestManager guilds = GuildRestManager(rest);
   late final ChannelRestManager channels = ChannelRestManager(rest);
   late final MessageRestManager messages = MessageRestManager(rest);
+  late final ThreadRestManager threads = ThreadRestManager(rest);
   late final GuildMemberRestManager members = GuildMemberRestManager(rest);
   late final GuildBanRestManager bans = GuildBanRestManager(rest);
   late final GuildEmojiRestManager emojis = GuildEmojiRestManager(rest);
@@ -119,7 +120,7 @@ final class Bot {
       _stateController.stream;
 
   // Stream has no whereType (that's an Iterable method) — filter+cast by
-  // hand, once here rather than 22 times below.
+  // hand, once here rather than in every getter below.
   Stream<T> _narrow<T extends GatewayEvent>() =>
       events.where((e) => e is T).cast<T>();
 
@@ -150,6 +151,13 @@ final class Bot {
   Stream<ChannelUpdateEvent> get onChannelUpdate => _narrow();
   Stream<ChannelDeleteEvent> get onChannelDelete => _narrow();
   Stream<ChannelPinsUpdateEvent> get onChannelPinsUpdate => _narrow();
+
+  Stream<ThreadCreateEvent> get onThreadCreate => _narrow();
+  Stream<ThreadUpdateEvent> get onThreadUpdate => _narrow();
+  Stream<ThreadDeleteEvent> get onThreadDelete => _narrow();
+  Stream<ThreadListSyncEvent> get onThreadListSync => _narrow();
+  Stream<ThreadMemberUpdateEvent> get onThreadMemberUpdate => _narrow();
+  Stream<ThreadMembersUpdateEvent> get onThreadMembersUpdate => _narrow();
 
   Stream<MessageDeleteBulkEvent> get onMessageDeleteBulk => _narrow();
   Stream<MessageReactionRemoveAllEvent> get onMessageReactionRemoveAll =>
@@ -219,13 +227,17 @@ final class Bot {
   /// `*_UPDATE` events that carry only a partial payload
   /// ([ChannelUpdateEvent]) remove the stale cache entry rather than risk
   /// caching incomplete data — the next [channel] call re-fetches it.
+  /// Thread events carry the whole thread, so those are cached directly.
   void _handleEvent(GatewayEvent event) {
     switch (event) {
       case ReadyEvent(:final user):
         _userCache.set(user.id, user);
         _selfId = user.id;
-      case GuildCreateEvent(:final guild):
+      case GuildCreateEvent(:final guild, :final threads):
         _guildCache.set(guild.id, guild);
+        for (final thread in threads) {
+          _channelCache.set(thread.id, thread);
+        }
       case GuildUpdateEvent(:final guild):
         _guildCache.set(guild.id, guild);
       case GuildDeleteEvent(:final guildId):
@@ -236,6 +248,16 @@ final class Bot {
         _channelCache.remove(channelId);
       case ChannelDeleteEvent(:final channelId):
         _channelCache.remove(channelId);
+      case ThreadCreateEvent(:final thread):
+        _channelCache.set(thread.id, thread);
+      case ThreadUpdateEvent(:final thread):
+        _channelCache.set(thread.id, thread);
+      case ThreadDeleteEvent(:final threadId):
+        _channelCache.remove(threadId);
+      case ThreadListSyncEvent(:final threads):
+        for (final thread in threads) {
+          _channelCache.set(thread.id, thread);
+        }
       case GuildMemberAddEvent(:final guildId, :final member):
         _memberCache.set((guildId, member.user.id), member);
         _userCache.set(member.user.id, member.user);
@@ -267,6 +289,8 @@ final class Bot {
       case WebhooksUpdateEvent():
       case InviteCreateEvent():
       case InviteDeleteEvent():
+      case ThreadMemberUpdateEvent():
+      case ThreadMembersUpdateEvent():
       case SessionsReplaceEvent():
       case UnknownDispatchEvent():
         break;

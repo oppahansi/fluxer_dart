@@ -3,7 +3,7 @@ description: >-
   A bot framework for Fluxer. The Bot facade ties together fluxer_dart_gateway,
   fluxer_dart_rest, fluxer_dart_core, and fluxer_dart_utils behind one clean, ergonomic
   entry point for bot authors.
-version: 0.3.0
+version: 0.4.0
 homepage: https://github.com/oppahansi/fluxer_dart
 repository: https://github.com/oppahansi/fluxer_dart
 # Not on pub.dev yet — remove this line once it's actually published there.
@@ -20,15 +20,15 @@ dependencies:
   fluxer_dart_core:
     git:
       url: https://github.com/oppahansi/fluxer_dart_core.git
-      ref: v0.3.0
+      ref: v0.4.0
   fluxer_dart_gateway:
     git:
       url: https://github.com/oppahansi/fluxer_dart_gateway.git
-      ref: v0.3.0
+      ref: v0.4.0
   fluxer_dart_rest:
     git:
       url: https://github.com/oppahansi/fluxer_dart_rest.git
-      ref: v0.3.0
+      ref: v0.4.0
   fluxer_dart_utils:
     git:
       url: https://github.com/oppahansi/fluxer_dart_utils.git

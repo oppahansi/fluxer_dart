@@ -80,6 +80,7 @@ void main() {
       expect(bot.invites, isA<InviteRestManager>());
       expect(bot.webhooks, isA<WebhookRestManager>());
       expect(bot.users, isA<UserRestManager>());
+      expect(bot.threads, isA<ThreadRestManager>());
     });
 
     test(
@@ -379,6 +380,124 @@ void main() {
 
       expect(result.name, 'fetched guild');
       expect(requestedPaths, ['/v1/gateway/bot', '/v1/guilds/$guildId']);
+    });
+
+    ThreadChannel thread({String name = 'cached-thread'}) => ThreadChannel(
+      id: channelId,
+      type: ChannelType.publicThread,
+      name: name,
+      guildId: guildId,
+      parentId: const Snowflake(201),
+      ownerId: userId,
+      lastMessageId: null,
+      rateLimitPerUser: 0,
+      flags: 0,
+      metadata: ThreadMetadata(
+        archived: false,
+        autoArchiveMinutes: 4320,
+        archiveTimestamp: DateTime.utc(2026, 10, 10),
+        locked: false,
+        invitable: null,
+        createdAt: DateTime.utc(2026, 10, 10),
+      ),
+      messageCount: 0,
+      totalMessageSent: 0,
+      memberCount: 1,
+    );
+
+    test('THREAD_CREATE caches the thread as a channel', () async {
+      await bot.login();
+      gatewayEvents.add(ThreadCreateEvent(thread(), newlyCreated: true));
+      await Future<void>.delayed(Duration.zero);
+
+      final result = await bot.channel(channelId);
+
+      expect(result, isA<ThreadChannel>());
+      expect(result.guildId, guildId);
+      expect(requestedPaths, ['/v1/gateway/bot']);
+    });
+
+    test('THREAD_UPDATE replaces the cached thread in place', () async {
+      await bot.login();
+      gatewayEvents.add(ThreadCreateEvent(thread()));
+      gatewayEvents.add(ThreadUpdateEvent(thread(name: 'renamed')));
+      await Future<void>.delayed(Duration.zero);
+
+      final result = await bot.channel(channelId);
+
+      expect(result.name, 'renamed');
+      expect(requestedPaths, ['/v1/gateway/bot']);
+    });
+
+    test('THREAD_DELETE evicts the thread so channel() re-fetches', () async {
+      await bot.login();
+      gatewayEvents.add(ThreadCreateEvent(thread()));
+      gatewayEvents.add(
+        const ThreadDeleteEvent(
+          threadId: channelId,
+          guildId: guildId,
+          parentId: Snowflake(201),
+          threadType: ChannelType.publicThread,
+        ),
+      );
+      await Future<void>.delayed(Duration.zero);
+
+      await bot.channel(channelId);
+
+      expect(requestedPaths, ['/v1/gateway/bot', '/v1/channels/$channelId']);
+    });
+
+    test(
+      'GUILD_CREATE and THREAD_LIST_SYNC cache the threads they list',
+      () async {
+        await bot.login();
+        const guild = Guild(
+          id: guildId,
+          name: 'cached guild',
+          icon: null,
+          ownerId: Snowflake(1),
+          roles: [],
+          memberCount: 1,
+          onlineCount: null,
+          vanityUrlCode: null,
+        );
+        gatewayEvents.add(GuildCreateEvent(guild, threads: [thread()]));
+        await Future<void>.delayed(Duration.zero);
+        expect((await bot.channel(channelId)).name, 'cached-thread');
+
+        gatewayEvents.add(
+          ThreadListSyncEvent(
+            guildId: guildId,
+            channelIds: null,
+            threads: [thread(name: 'synced')],
+            members: const [],
+          ),
+        );
+        await Future<void>.delayed(Duration.zero);
+
+        expect((await bot.channel(channelId)).name, 'synced');
+        expect(requestedPaths, ['/v1/gateway/bot']);
+      },
+    );
+
+    test('thread events reach their narrowed streams', () async {
+      await bot.login();
+      final created = bot.onThreadCreate.first;
+      final members = bot.onThreadMembersUpdate.first;
+
+      gatewayEvents.add(ThreadCreateEvent(thread(), newlyCreated: true));
+      gatewayEvents.add(
+        const ThreadMembersUpdateEvent(
+          threadId: channelId,
+          guildId: guildId,
+          memberCount: 0,
+          addedMembers: [],
+          removedMemberIds: [userId],
+        ),
+      );
+
+      expect((await created).newlyCreated, isTrue);
+      expect((await members).removedMemberIds, [userId]);
     });
 
     test('CHANNEL_UPDATE evicts the channel so channel() re-fetches', () async {
