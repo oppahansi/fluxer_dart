@@ -32,6 +32,7 @@
   webhook client pointed at the same instance as `Bot.rest`.
 - `onChannelRecipientAdd` and `onChannelRecipientRemove`; either evicts
   the cached group DM so its recipients are re-fetched.
+- `onMessageReactionAddMany`.
 
 ## 0.4.0
 

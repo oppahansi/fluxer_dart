@@ -153,6 +153,7 @@ final class Bot {
   Stream<MessageDeleteEvent> get onMessageDelete => _narrow();
   Stream<MessageReactionAddEvent> get onMessageReactionAdd => _narrow();
   Stream<MessageReactionRemoveEvent> get onMessageReactionRemove => _narrow();
+  Stream<MessageReactionAddManyEvent> get onMessageReactionAddMany => _narrow();
   Stream<TypingStartEvent> get onTypingStart => _narrow();
 
   Stream<GuildCreateEvent> get onGuildCreate => _narrow();
@@ -397,6 +398,7 @@ final class Bot {
       case MessageDeleteEvent():
       case MessageReactionAddEvent():
       case MessageReactionRemoveEvent():
+      case MessageReactionAddManyEvent():
       case TypingStartEvent():
       case GuildRoleCreateEvent():
       case GuildRoleUpdateEvent():
