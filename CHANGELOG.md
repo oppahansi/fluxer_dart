@@ -15,6 +15,19 @@
 - Fixed: deleting a channel now also evicts the cached threads under
   it. The server sends no `THREAD_DELETE` for them, so they previously
   stayed cached.
+- `GUILD_CREATE` and `GUILD_SYNC` now seed the channel, member and user
+  caches, so `Bot.channel` no longer fetches what the gateway already
+  sent.
+- `Bot.subscribe` (Lazy Request), `guildCounts`, `channelMemberCounts`
+  and `forumUnreads`; the first two match their answer by nonce.
+- `Bot.presence(guildId, userId)` and `Bot.voiceStates(guildId)`, backed
+  by new injectable `presenceCache` and `voiceStateCache`. Presences come
+  from subscriptions, member lists and member chunks; voice states from
+  `GUILD_CREATE` and `VOICE_STATE_UPDATE`.
+- `onGuildSync`, `onPresenceUpdate`, `onPresenceUpdateBulk`,
+  `onGuildMemberListUpdate`, `onThreadMemberListUpdate`,
+  `onGuildCountsUpdate`, `onChannelMemberCountsUpdate`, `onForumUnreads`
+  and `onVoiceStateUpdate`.
 
 ## 0.4.0
 
