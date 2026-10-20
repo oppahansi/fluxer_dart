@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.5.0
+
+- `Bot.queryMembers`: Request Guild Members as a single call. It
+  collects every chunk of its own answer, matched by nonce, and throws
+  `FluxerGatewayRateLimitException` when the full-list budget is spent.
+  Input the server would drop without answering (more than 100 user
+  ids, a limit over 100) throws instead of timing out.
+- `onChannelUpdateBulk`, `onGuildRoleUpdateBulk`, `onGuildMembersChunk`,
+  `onRateLimited` and `onUserUpdate`.
+- Cache: a channel bulk update replaces the cached channels, member
+  chunks populate the member and user caches, and `USER_UPDATE` the user
+  cache.
+- Fixed: deleting a channel now also evicts the cached threads under
+  it. The server sends no `THREAD_DELETE` for them, so they previously
+  stayed cached.
+
 ## 0.4.0
 
 - `Bot.threads`, a `ThreadRestManager`.

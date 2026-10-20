@@ -141,15 +141,20 @@ final class Bot {
   Stream<GuildRoleCreateEvent> get onGuildRoleCreate => _narrow();
   Stream<GuildRoleUpdateEvent> get onGuildRoleUpdate => _narrow();
   Stream<GuildRoleDeleteEvent> get onGuildRoleDelete => _narrow();
+  Stream<GuildRoleUpdateBulkEvent> get onGuildRoleUpdateBulk => _narrow();
   Stream<GuildMemberAddEvent> get onGuildMemberAdd => _narrow();
   Stream<GuildMemberUpdateEvent> get onGuildMemberUpdate => _narrow();
   Stream<GuildMemberRemoveEvent> get onGuildMemberRemove => _narrow();
   Stream<GuildBanAddEvent> get onGuildBanAdd => _narrow();
   Stream<GuildBanRemoveEvent> get onGuildBanRemove => _narrow();
+  Stream<GuildMembersChunkEvent> get onGuildMembersChunk => _narrow();
+  Stream<RateLimitedEvent> get onRateLimited => _narrow();
+  Stream<UserUpdateEvent> get onUserUpdate => _narrow();
 
   Stream<ChannelCreateEvent> get onChannelCreate => _narrow();
   Stream<ChannelUpdateEvent> get onChannelUpdate => _narrow();
   Stream<ChannelDeleteEvent> get onChannelDelete => _narrow();
+  Stream<ChannelUpdateBulkEvent> get onChannelUpdateBulk => _narrow();
   Stream<ChannelPinsUpdateEvent> get onChannelPinsUpdate => _narrow();
 
   Stream<ThreadCreateEvent> get onThreadCreate => _narrow();
@@ -227,7 +232,12 @@ final class Bot {
   /// `*_UPDATE` events that carry only a partial payload
   /// ([ChannelUpdateEvent]) remove the stale cache entry rather than risk
   /// caching incomplete data — the next [channel] call re-fetches it.
-  /// Thread events carry the whole thread, so those are cached directly.
+  /// Thread events and [ChannelUpdateBulkEvent] carry whole channels, so
+  /// those are cached directly.
+  ///
+  /// Deleting a channel deletes its threads without a `THREAD_DELETE` for
+  /// each, so [ChannelDeleteEvent] also drops every cached thread whose
+  /// parent it was.
   void _handleEvent(GatewayEvent event) {
     switch (event) {
       case ReadyEvent(:final user):
@@ -248,6 +258,23 @@ final class Bot {
         _channelCache.remove(channelId);
       case ChannelDeleteEvent(:final channelId):
         _channelCache.remove(channelId);
+        final orphans = _channelCache.values
+            .whereType<ThreadChannel>()
+            .where((t) => t.parentId == channelId)
+            .map((t) => t.id)
+            .toList();
+        orphans.forEach(_channelCache.remove);
+      case ChannelUpdateBulkEvent(:final channels):
+        for (final channel in channels) {
+          _channelCache.set(channel.id, channel);
+        }
+      case UserUpdateEvent(:final user):
+        _userCache.set(user.id, user);
+      case GuildMembersChunkEvent(:final guildId, :final members):
+        for (final member in members) {
+          _memberCache.set((guildId, member.user.id), member);
+          _userCache.set(member.user.id, member.user);
+        }
       case ThreadCreateEvent(:final thread):
         _channelCache.set(thread.id, thread);
       case ThreadUpdateEvent(:final thread):
@@ -277,6 +304,8 @@ final class Bot {
       case GuildRoleCreateEvent():
       case GuildRoleUpdateEvent():
       case GuildRoleDeleteEvent():
+      case GuildRoleUpdateBulkEvent():
+      case RateLimitedEvent():
       case GuildBanAddEvent():
       case GuildBanRemoveEvent():
       case MessageDeleteBulkEvent():
@@ -326,9 +355,9 @@ final class Bot {
   /// Asks for members of [guildId] over the gateway.
   ///
   /// Answered asynchronously as `GUILD_MEMBERS_CHUNK` dispatches on
-  /// [events], not as a return value; [GuildMemberRestManager.list] is
-  /// the request/response alternative. Sent on the shard that owns the
-  /// guild, which is `(guildId >> 22) % shardCount`.
+  /// [events], not as a return value; [queryMembers] collects the answer
+  /// for you. Sent on the shard that owns the guild, which is
+  /// `(guildId >> 22) % shardCount`.
   void requestGuildMembers(
     Snowflake guildId, {
     String query = '',
@@ -349,6 +378,86 @@ final class Bot {
       nonce: nonce,
     );
   }
+
+  /// Requests members of [guildId] over the gateway and collects every
+  /// `GUILD_MEMBERS_CHUNK` of the answer.
+  ///
+  /// With no [query] and a [limit] of 0 this is the full member list,
+  /// which a bot may request once per guild every 30 seconds; a request
+  /// inside that window throws [FluxerGatewayRateLimitException] with the
+  /// time remaining. A non-empty [query] matches a display-name prefix
+  /// and defaults to 25 results; [userIds] selects up to 100 members
+  /// directly and ignores both. [presences] adds the online members'
+  /// presences. Members received are also cached, see [member].
+  ///
+  /// The server abandons a request after 10 seconds without a word, so
+  /// a [timeout] shorter than that can give up on a slow answer, and one
+  /// longer only delays the [TimeoutException].
+  Future<({List<GuildMember> members, List<UserPresence> presences})>
+  queryMembers(
+    Snowflake guildId, {
+    String query = '',
+    int limit = 0,
+    List<Snowflake> userIds = const [],
+    bool presences = false,
+    Duration timeout = const Duration(seconds: 12),
+  }) async {
+    if (shards.isEmpty) {
+      throw StateError('queryMembers needs a gateway session; call login().');
+    }
+    // The server discards these silently, which would surface only as a
+    // timeout.
+    RangeError.checkValueInInterval(limit, 0, 100, 'limit');
+    if (userIds.length > 100) {
+      throw ArgumentError.value(userIds.length, 'userIds', 'at most 100');
+    }
+
+    final nonce = 'q${_nextNonce++}';
+    final members = <GuildMember>[];
+    final presenceList = <UserPresence>[];
+    final done = Completer<void>();
+    var chunks = 0;
+    final subscription = events.listen((event) {
+      switch (event) {
+        case GuildMembersChunkEvent(nonce: final n) when n == nonce:
+          members.addAll(event.members);
+          presenceList.addAll(event.presences);
+          if (++chunks >= event.chunkCount && !done.isCompleted) {
+            done.complete();
+          }
+        case RateLimitedEvent(nonce: final n) when n == nonce:
+          if (!done.isCompleted) {
+            done.completeError(
+              FluxerGatewayRateLimitException(
+                'Request Guild Members refused for guild $guildId',
+                opcode: event.opcode,
+                retryAfter: event.retryAfter,
+              ),
+            );
+          }
+        default:
+      }
+    });
+    try {
+      requestGuildMembers(
+        guildId,
+        query: query,
+        limit: limit,
+        userIds: userIds,
+        presences: presences,
+        nonce: nonce,
+      );
+      await done.future.timeout(timeout);
+      return (
+        members: List<GuildMember>.unmodifiable(members),
+        presences: List<UserPresence>.unmodifiable(presenceList),
+      );
+    } finally {
+      await subscription.cancel();
+    }
+  }
+
+  int _nextNonce = 0;
 
   /// [guildId]'s [Guild], from cache if present, otherwise fetched via
   /// [guilds] and cached for next time.
