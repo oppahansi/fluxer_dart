@@ -28,6 +28,10 @@
   `onGuildMemberListUpdate`, `onThreadMemberListUpdate`,
   `onGuildCountsUpdate`, `onChannelMemberCountsUpdate`, `onForumUnreads`
   and `onVoiceStateUpdate`.
+- `Bot.discovery` and `Bot.webhookTokens`, the token-authenticated
+  webhook client pointed at the same instance as `Bot.rest`.
+- `onChannelRecipientAdd` and `onChannelRecipientRemove`; either evicts
+  the cached group DM so its recipients are re-fetched.
 
 ## 0.4.0
 

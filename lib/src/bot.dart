@@ -39,6 +39,7 @@ final class Bot {
     this.initialPresence,
     this.sessionFlags = SessionFlags.none,
   }) : logger = logger ?? const NoopLogger(),
+       _restBaseUrl = restBaseUrl,
        rest =
            restClient ??
            RestClient(token: token, baseUrl: restBaseUrl, logger: logger),
@@ -52,6 +53,7 @@ final class Bot {
   final String token;
   final Logger logger;
   final RestClient rest;
+  final Uri? _restBaseUrl;
 
   final CacheProvider<Snowflake, Guild> _guildCache;
   final CacheProvider<Snowflake, Channel> _channelCache;
@@ -106,6 +108,13 @@ final class Bot {
   late final WebhookRestManager webhooks = WebhookRestManager(rest);
   late final UserRestManager users = UserRestManager(rest);
   late final AttachmentRestManager attachments = AttachmentRestManager(rest);
+  late final DiscoveryRestManager discovery = DiscoveryRestManager(rest);
+
+  /// The webhook routes that authenticate with a webhook's own token
+  /// instead of this bot's, against the same instance as [rest].
+  late final WebhookExecuteClient webhookTokens = WebhookExecuteClient(
+    baseUrl: _restBaseUrl,
+  );
   late final GatewayRestManager _gatewayRest = GatewayRestManager(rest);
 
   final _eventsController = StreamController<GatewayEvent>.broadcast();
@@ -177,6 +186,8 @@ final class Bot {
   Stream<ChannelUpdateEvent> get onChannelUpdate => _narrow();
   Stream<ChannelDeleteEvent> get onChannelDelete => _narrow();
   Stream<ChannelUpdateBulkEvent> get onChannelUpdateBulk => _narrow();
+  Stream<ChannelRecipientAddEvent> get onChannelRecipientAdd => _narrow();
+  Stream<ChannelRecipientRemoveEvent> get onChannelRecipientRemove => _narrow();
   Stream<ChannelPinsUpdateEvent> get onChannelPinsUpdate => _narrow();
 
   Stream<ThreadCreateEvent> get onThreadCreate => _narrow();
@@ -341,6 +352,12 @@ final class Bot {
         for (final channel in channels) {
           _channelCache.set(channel.id, channel);
         }
+      // A cached group DM lists its recipients; evict it so the next
+      // [channel] call fetches the new list.
+      case ChannelRecipientAddEvent(:final channelId, :final user) ||
+          ChannelRecipientRemoveEvent(:final channelId, :final user):
+        _channelCache.remove(channelId);
+        _userCache.set(user.id, user);
       case UserUpdateEvent(:final user):
         _userCache.set(user.id, user);
       case GuildMembersChunkEvent(
