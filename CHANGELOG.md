@@ -33,6 +33,8 @@
 - `onChannelRecipientAdd` and `onChannelRecipientRemove`; either evicts
   the cached group DM so its recipients are re-fetched.
 - `onMessageReactionAddMany`.
+- Pins `fluxer_dart_core`, `fluxer_dart_rest` and `fluxer_dart_gateway`
+  0.5.0.
 
 ## 0.4.0
 
